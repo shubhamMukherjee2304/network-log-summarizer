@@ -1,0 +1,10 @@
+Sep 30 10:00:05 Router1 %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down
+Sep 30 10:00:10 Router1 %LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to up
+Sep 30 10:00:30 SwitchA %LINEPROTO-5-UPDOWN: Line protocol on Interface Vlan1 is up
+Sep 30 10:01:45 Router1 %BGP-5-ADJCHANGE: neighbor 192.168.1.5 Down - BGP Notification received
+Sep 30 10:05:00 Router2 %LINK-3-UPDOWN: Interface GigabitEthernet1/1, changed state to down
+Sep 30 10:05:01 Router2 %LINK-3-UPDOWN: Interface GigabitEthernet1/1, changed state to up
+Sep 30 11:15:20 Firewall %AUTH-4-FAIL: Login failed for user 'admin' from 10.0.0.1 via ssh
+Sep 30 11:30:10 Router1 %IP-4-DUPADDR: Duplicate address 192.168.1.1 on GigabitEthernet0/0, originating from 0011.2233.4455
+Sep 30 12:00:00 SwitchA %LINK-5-CHANGED: Interface FastEthernet0/1, changed state to administratively down
+Sep 30 12:01:00 Router2 %CRIT-2-SYSTEM_ERROR: Hardware failure detected on power supply 2
