@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 
-  jobs:
+jobs:
     build_and_test:
       runs-on: ubuntu-latest
 
