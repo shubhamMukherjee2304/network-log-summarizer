@@ -66,60 +66,96 @@ except Exception as e:
     print(f"Details: {e}")
 
 
+class EventDetail(BaseModel):
+    """A detailed summary of a single network event."""
+    type: str = Field(description="Type of event, e.g., 'Interface Down/Up', 'Login Failure', 'BGP Drop', 'Critical Error'.")
+    device: str = Field(description="Name of the affected device, e.g., 'Router1', 'SwitchA'.")
+    port: str = Field(description="Affected interface or service, e.g., 'Gig0/1', 'Vlan1', 'ssh'. Use 'N/A' if not applicable.")
+    severity: str = Field(description="Severity level, e.g., 'CRIT', 'ERROR', 'WARN', 'INFO'.")
+    count: int = Field(description="Number of times this specific event (or type of event) occurred in the logs.")
+
+class NetworkSummary(BaseModel):
+    """The complete structured summary for the network log analysis."""
+    timeframe: str = Field(description="The start and end time range covered by the analyzed logs, e.g., 'Sep 30 10:00:05 - 12:01:00'.")
+    summary_text: str = Field(description="A detailed, plain English summary of the analysis, providing insights and context.")
+    events: list[EventDetail] = Field(description="A list of structured, key network events identified in the logs.")
+
+
+parser = JsonOutputParser(pydantic_object=NetworkSummary)
+parser_instructions = parser.get_format_instructions()
+
 SUMMARY_TEMPLATE = """
-You are a highly skilled network analyst. Your task is to summarize and analyze a batch of raw network log entries.
+You are a highly skilled network analyst. Your task is to analyze a batch of raw network log entries and generate a comprehensive output that includes both a detailed plain-text summary and a structured JSON summary.
+
 The user provided a query, and the following raw log entries were retrieved from the database:
 ---
 {logs}
 ---
-Analyze these logs and provide a professional, insightful summary.
+Analyze these logs and provide ALL output in a single JSON object that conforms exactly to the schema provided below.
+The 'summary_text' field must contain the detailed natural language analysis.
 
-Summary Requirements:
-1.  **Key Events:** Briefly describe the main incidents observed.
-2.  **Anomalies:** Highlight specific anomalies such as link flaps (interface changing state multiple times), BGP neighbor drops, login failures, or duplicate IP addresses.
-3.  **Affected Systems:** For each major event/anomaly, clearly state the **timeframe** (e.g., "between 10:00:05 and 10:00:10"), the **affected device/port**, and the **severity** (if possible).
-4.  **Formatting:** Present the output in easy-to-read, structured bullet points or paragraphs.
-
-DO NOT include any SQL code, database structure details, or raw log lines in your final summary.
+Schema and Formatting Instructions:
+----------------------------------
+{format_instructions}
+----------------------------------
 """
 
-summary_prompt = PromptTemplate(input_variables=["logs"], template=SUMMARY_TEMPLATE)
+summary_prompt = PromptTemplate(
+    template = SUMMARY_TEMPLATE,
+    input_variables=["logs"],
+    partial_variables={"format_instructions": parser_instructions}
+)
 
-#creating a summarization chain
-summarization_chain = LLMChain(llm=llm, prompt=summary_prompt)
+#summarization chain
+summarization_chain = summary_prompt | llm | parser
+
 
 def get_log_summary(user_question):
     """
-    Coordinates the entire process: SQL Query -> Data Fetch ->Summarization.
-
+    Coordinates the entire process: SQL Query -> Data Fetch -> Structured Summarization.
+    Returns the parsed Python dictionary (which includes both text and JSON data).
     """
     print(f"\n -- STEP 1: Running SQL agent for: '{user_question}' ---\n ")
-    #passing query to sql agent for raw log entries and then call the invoke method on the executor
+
     raw_logs_responses = agent_executor.invoke({"input": user_question})
     raw_logs = raw_logs_responses['output']
 
     if not raw_logs or raw_logs.strip() == "[]":
-        return "The query returned no log entries to summarize."
+        return {"summary_text": "The query returned no log entries to summarize.", "timeframe": "N/A", "events": []}
 
-    print("\n -- STEP 2: Raw logs retireved generating summary.. -- \n")
+    print("\n -- STEP 2: Raw logs retrieved. Generating Structured Summary... -- \n")
 
-    final_summary = summarization_chain.invoke({"logs":raw_logs})
+    # The chain now returns the final Python dictionary/Pydantic object
+    final_summary_dict = summarization_chain.invoke({"logs": raw_logs})
 
-    return final_summary['text']
+    return final_summary_dict
 
-user_input = "Retrieve all log entries from Router1, Switch A, Firewall and Router2, and then summarize the key events"
+
+# --- FINAL EXECUTION (Updated Output Handling) ---
+
+user_input = "Retrieve all log entries from Router1, SwitchA, Firewall and Router2, and then summarize the key events"
 
 print("\n\n==============================================")
 print("NETWORK LOG SUMMARIZER AGENT START")
 print("==============================================")
 
-final_summary_output = get_log_summary(user_input)
+# Execute the combined process
+final_structured_output = get_log_summary(user_input)
+
+# ------------------------------------------------
+# Output Formatting (Step 5.1 & 5.2 implementation)
+# ------------------------------------------------
+
+import json
 
 print("\n==============================================")
-print("FINAL ANALYTICAL SUMMARY")
+print("1. PLAIN ENGLISH SUMMARY (Extracted from JSON)")
 print("==============================================")
-print(final_summary_output)
+print(final_structured_output.get('summary_text', 'No summary text found.'))
+
+print("\n==============================================")
+print("2. JSON OUTPUT FOR DASHBOARDS")
 print("==============================================")
-
-
-
+# Print the JSON output neatly formatted
+print(json.dumps(final_structured_output, indent=2))
+print("==============================================")
