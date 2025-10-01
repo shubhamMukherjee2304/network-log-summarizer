@@ -76,6 +76,8 @@ def insert_log_entry(conn, entry):
         INSERT INTO logs (timestamp, device, severity, message) VALUES (?,?,?,?)
         """, (entry['timestamp'], entry['device'], entry['severity'], entry['message']))
 
+        conn.commit()
+
 #entry point
 if __name__ == '__main__':
     if os.path.exists(DB_FILE):

@@ -1,7 +1,10 @@
 #requirements.txt
-langchain-openai
+langchain
+langchain-core
+langchain-google-genai
 langchain-community
-openai
 sqlite-utils
 python-dotenv
+pydantic
+
 
