@@ -1,0 +1,7 @@
+#requirements.txt
+langchain-openai
+langchain-community
+openai
+sqlite-utils
+python-dotenv
+

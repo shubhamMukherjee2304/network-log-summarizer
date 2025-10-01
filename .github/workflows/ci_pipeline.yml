@@ -1,0 +1,53 @@
+name: CI Pipeline - Log Summarizer
+
+on:
+  #trigger on push-pull
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+
+  jobs:
+    build_and_test:
+      runs-on: ubuntu-latest
+
+      env:
+        DB_FILE: logs/logs.db
+        LOG_FILE: logs/network_logs.log
+
+      steps:
+        - name: Checkout repository code
+          uses: actions/checkout@v4
+
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.10'
+
+        - name: Install dependencies
+          run: |
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+
+        - name: Prepare log and database files
+          run: |
+              # 1. Create the logs directory if it doesn't exist
+              mkdir -p logs
+              # 2. Recreate the raw log file using cat (or copy)
+              # Note: You need to ensure network_logs.log content is available here
+              # (This is a simplified way; ideally, it's checked out from git)
+              # Since the file is small and committed, standard checkout is enough.
+
+        - name: Run Log Parser (Module 2)
+          run: python scripts/parser.py
+
+        - name: Verify Database Creation
+          run: |
+            if [ ! -f "$DB_FILE" ]; then
+              echo "Database file $DB_FILE was not created. CI failed."
+              exit 1
+            fi
+            echo "Database file $DB_FILE successfully created."
